@@ -8,7 +8,7 @@ function App() {
 
   // Alerts posts
   const [posts, setPosts] = useState([
-    { id: 1, message: "Maintenance Alert", comments: [] },
+    { id: 1, message: "Maintenance Log", comments: [] },
   ]);
   const [newComment, setNewComment] = useState("");
 
@@ -167,5 +167,3 @@ function App() {
 }
 
 export default App;
-
-
