@@ -9,8 +9,8 @@ function App() {
   const [parts, setParts] = useState([]);
   const [commentText, setCommentText] = useState("");
   const [partName, setPartName] = useState("");
+  const [activeTab, setActiveTab] = useState("parts");
 
-  // --- Load data ---
   useEffect(() => {
     loadComments();
     loadParts();
@@ -18,17 +18,14 @@ function App() {
 
   const loadComments = async () => {
     const res = await fetch(`${API}/comments`);
-    const data = await res.json();
-    setComments(data);
+    setComments(await res.json());
   };
 
   const loadParts = async () => {
     const res = await fetch(`${API}/parts`);
-    const data = await res.json();
-    setParts(data);
+    setParts(await res.json());
   };
 
-  // --- Handlers ---
   const addComment = async () => {
     if (!commentText) return;
     await fetch(`${API}/comments`, {
@@ -63,45 +60,72 @@ function App() {
 
   return (
     <div className="app">
-      <h1>Parts & Comments App</h1>
+      <header>
+        <h1>DC8149 Facilities</h1>
+        <div className="tabs">
+          <button
+            className={activeTab === "parts" ? "active" : ""}
+            onClick={() => setActiveTab("parts")}
+          >
+            Parts Check-Out
+          </button>
+          <button
+            className={activeTab === "maintenance" ? "active" : ""}
+            onClick={() => setActiveTab("maintenance")}
+          >
+            Maintenance Work Log
+          </button>
+        </div>
+        <p className="note">
+          Please use this Web Based App to check out parts and log all repairs. Thanks Team! - Arshoen Scott
+        </p>
+      </header>
 
-      <div className="section">
-        <h2>Comments</h2>
-        <input
-          type="text"
-          value={commentText}
-          onChange={(e) => setCommentText(e.target.value)}
-          placeholder="New comment"
-        />
-        <button onClick={addComment}>Add Comment</button>
-        <ul>
-          {comments.map((c) => (
-            <li key={c.id}>
-              {c.text}{" "}
-              <button onClick={() => deleteComment(c.id)}>Delete</button>
-            </li>
-          ))}
-        </ul>
-      </div>
+      {activeTab === "parts" && (
+        <div className="section">
+          <h2>Parts Check-Out</h2>
+          <input
+            type="text"
+            value={partName}
+            onChange={(e) => setPartName(e.target.value)}
+            placeholder="New part"
+          />
+          <button onClick={addPart}>Add Part</button>
+          <ul>
+            {parts.map((p) => (
+              <li key={p.id}>
+                {p.name}{" "}
+                <button className="delete-btn" onClick={() => deletePart(p.id)}>
+                  Delete
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
-      <div className="section">
-        <h2>Parts</h2>
-        <input
-          type="text"
-          value={partName}
-          onChange={(e) => setPartName(e.target.value)}
-          placeholder="New part"
-        />
-        <button onClick={addPart}>Add Part</button>
-        <ul>
-          {parts.map((p) => (
-            <li key={p.id}>
-              {p.name}{" "}
-              <button onClick={() => deletePart(p.id)}>Delete</button>
-            </li>
-          ))}
-        </ul>
-      </div>
+      {activeTab === "maintenance" && (
+        <div className="section">
+          <h2>Maintenance Work Log</h2>
+          <input
+            type="text"
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            placeholder="New comment"
+          />
+          <button onClick={addComment}>Add Comment</button>
+          <ul>
+            {comments.map((c) => (
+              <li key={c.id}>
+                {c.text}{" "}
+                <button className="delete-btn" onClick={() => deleteComment(c.id)}>
+                  Delete
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 }
