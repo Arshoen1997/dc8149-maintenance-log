@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
+import { supabase } from "./supabaseClient";
 import "./style.css";
-import { supabase } from "./supabaseClient"; // <-- import Supabase client
 
 function App() {
   const [comments, setComments] = useState([]);
@@ -11,54 +11,48 @@ function App() {
   const [activeTab, setActiveTab] = useState("parts");
 
   useEffect(() => {
-    fetchComments();
-    fetchParts();
+    loadComments();
+    loadParts();
   }, []);
 
-  // --- Parts ---
-  const fetchParts = async () => {
-    const { data, error } = await supabase.from("parts").select("*").order("id");
-    if (error) console.error(error);
-    else setParts(data);
+  // Load comments from Supabase
+  const loadComments = async () => {
+    let { data, error } = await supabase.from("comments").select("*");
+    if (!error) setComments(data);
   };
 
-  const addPart = async () => {
-    if (!partName) return;
-    const { error } = await supabase.from("parts").insert([{ name: partName }]);
-    if (error) console.error(error);
-    else {
-      setPartName("");
-      fetchParts();
-    }
+  // Load parts from Supabase
+  const loadParts = async () => {
+    let { data, error } = await supabase.from("parts").select("*");
+    if (!error) setParts(data);
   };
 
-  const deletePart = async (id) => {
-    const { error } = await supabase.from("parts").delete().eq("id", id);
-    if (error) console.error(error);
-    else fetchParts();
-  };
-
-  // --- Comments ---
-  const fetchComments = async () => {
-    const { data, error } = await supabase.from("comments").select("*").order("id");
-    if (error) console.error(error);
-    else setComments(data);
-  };
-
+  // Add comment
   const addComment = async () => {
     if (!commentText) return;
-    const { error } = await supabase.from("comments").insert([{ text: commentText }]);
-    if (error) console.error(error);
-    else {
-      setCommentText("");
-      fetchComments();
-    }
+    await supabase.from("comments").insert([{ text: commentText }]);
+    setCommentText("");
+    loadComments();
   };
 
+  // Delete comment
   const deleteComment = async (id) => {
-    const { error } = await supabase.from("comments").delete().eq("id", id);
-    if (error) console.error(error);
-    else fetchComments();
+    await supabase.from("comments").delete().eq("id", id);
+    loadComments();
+  };
+
+  // Add part
+  const addPart = async () => {
+    if (!partName) return;
+    await supabase.from("parts").insert([{ name: partName }]);
+    setPartName("");
+    loadParts();
+  };
+
+  // Delete part
+  const deletePart = async (id) => {
+    await supabase.from("parts").delete().eq("id", id);
+    loadParts();
   };
 
   return (
@@ -128,7 +122,7 @@ function App() {
             ))}
           </ul>
         </div>
-      ))}
+      )}
     </div>
   );
 }
