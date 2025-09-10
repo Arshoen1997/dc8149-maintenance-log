@@ -1,160 +1,155 @@
-import { useState, useEffect } from "react";
-import { supabase } from "./supabaseClient";
+import React, { useEffect, useState } from "react";
+import { supabase } from "./supabaseClient.js";
 
 function App() {
-  const [activeTab, setActiveTab] = useState("supply");
-  const [supplies, setSupplies] = useState([]);
-  const [newItem, setNewItem] = useState("");
-  const [newQty, setNewQty] = useState("");
-  const [posts, setPosts] = useState([{ id: 1, message: "Maintenance Log", comments: [] }]);
-  const [newComment, setNewComment] = useState("");
+  const [comments, setComments] = useState([]);
+  const [parts, setParts] = useState([]);
+  const [commentText, setCommentText] = useState("");
+  const [partName, setPartName] = useState("");
+  const [activeTab, setActiveTab] = useState("parts");
+  const [commentError, setCommentError] = useState("");
+  const [partError, setPartError] = useState("");
 
-  // Load supplies from Supabase
-  const loadSupplies = async () => {
-    const { data, error } = await supabase
-      .from("supplies")
-      .select("*")
-      .order("created_at", { ascending: true });
-    if (!error) setSupplies(data);
+  useEffect(() => {
+    loadComments();
+    loadParts();
+  }, []);
+
+  const loadComments = async () => {
+    const { data, error } = await supabase.from("comments").select("*");
+    if (error) console.error("Load comments error:", error);
+    else setComments(data);
+    console.log("Comments loaded:", data);
   };
 
-  // Load comments from Supabase
-  const loadComments = async () => {
-    const { data, error } = await supabase
-      .from("comments")
-      .select("*")
-      .order("created_at", { ascending: true });
-    if (!error) {
-      // Map comments to posts
-      setPosts((prevPosts) =>
-        prevPosts.map((post) => ({
-          ...post,
-          comments: data.filter((c) => c.post_id === post.id).map((c) => c.text),
-        }))
-      );
+  const loadParts = async () => {
+    const { data, error } = await supabase.from("parts").select("*");
+    if (error) console.error("Load parts error:", error);
+    else setParts(data);
+    console.log("Parts loaded:", data);
+  };
+
+  const addComment = async () => {
+    setCommentError("");
+    if (!commentText) {
+      setCommentError("Comment cannot be empty.");
+      return;
+    }
+    const { data, error } = await supabase.from("comments").insert([{ text: commentText }]).select();
+    if (error) {
+      setCommentError("Failed to add comment: " + error.message);
+      console.error("Add comment error:", error);
+    } else {
+      setCommentText("");
+      loadComments();
     }
   };
 
-  useEffect(() => {
-    loadSupplies();
-    loadComments();
-
-    // Optional: Realtime subscriptions
-    const suppliesSub = supabase
-      .from("supplies")
-      .on("*", () => loadSupplies())
-      .subscribe();
-
-    const commentsSub = supabase
-      .from("comments")
-      .on("*", () => loadComments())
-      .subscribe();
-
-    return () => {
-      supabase.removeSubscription(suppliesSub);
-      supabase.removeSubscription(commentsSub);
-    };
-  }, []);
-
-  // Add supply
-  const addSupply = async () => {
-    if (!newItem || !newQty) return;
-    await supabase.from("supplies").insert([{ name: newItem, quantity: parseInt(newQty, 10) }]);
-    setNewItem("");
-    setNewQty("");
+  const deleteComment = async (id) => {
+    const { error } = await supabase.from("comments").delete().eq("id", id);
+    if (error) console.error("Delete comment error:", error);
+    else {
+      console.log("Comment deleted:", id);
+      loadComments();
+    }
   };
 
-  // Delete supply
-  const deleteSupply = async (id) => {
-    await supabase.from("supplies").delete().eq("id", id);
+  const addPart = async () => {
+    setPartError("");
+    if (!partName) {
+      setPartError("Part name cannot be empty.");
+      return;
+    }
+    const { data, error } = await supabase.from("parts").insert([{ name: partName }]).select();
+    if (error) {
+      setPartError("Failed to add part: " + error.message);
+      console.error("Add part error:", error);
+    } else {
+      setPartName("");
+      loadParts();
+    }
   };
 
-  // Add comment
-  const addComment = async (postId) => {
-    if (!newComment) return;
-    await supabase.from("comments").insert([{ post_id: postId, text: newComment }]);
-    setNewComment("");
+  const deletePart = async (id) => {
+    const { error } = await supabase.from("parts").delete().eq("id", id);
+    if (error) {
+      console.error("Delete part error:", error);
+    } else {
+      console.log("Part deleted:", id);
+      loadParts();
+    }
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
-      <main className="flex-1 overflow-auto p-4 pb-20">
-        {activeTab === "supply" && (
-          <div className="max-w-xl mx-auto">
-            <h1 className="text-2xl font-bold mb-4">DC8149 Maintenance Log - Supply</h1>
-            <div className="mb-4 flex gap-2">
-              <input
-                type="text"
-                placeholder="Supply name"
-                value={newItem}
-                onChange={(e) => setNewItem(e.target.value)}
-                className="border p-2 rounded flex-1"
-              />
-              <input
-                type="number"
-                placeholder="Qty"
-                value={newQty}
-                onChange={(e) => setNewQty(e.target.value)}
-                className="border p-2 rounded w-24"
-              />
-              <button onClick={addSupply} className="bg-blue-600 text-white px-4 py-2 rounded">
-                Add
-              </button>
-            </div>
-            <ul className="space-y-2">
-              {supplies.map((s) => (
-                <li key={s.id} className="border p-2 rounded flex justify-between items-center bg-white">
-                  <div>
-                    <span className="font-medium">{s.name}</span> - Qty: {s.quantity}
-                  </div>
-                  <button onClick={() => deleteSupply(s.id)} className="bg-red-600 text-white px-3 py-1 rounded">
-                    Delete
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+    <div className="app">
+      <header>
+        <h1>DC8149 Facilities</h1>
+        <div className="tabs">
+          <button
+            className={activeTab === "parts" ? "active" : ""}
+            onClick={() => setActiveTab("parts")}
+          >
+            Parts Check-Out
+          </button>
+          <button
+            className={activeTab === "maintenance" ? "active" : ""}
+            onClick={() => setActiveTab("maintenance")}
+          >
+            Maintenance Work Log
+          </button>
+        </div>
+        <p className="note">
+          Please use this Web Based App to check out parts and log all repairs. Thanks Team! - Arshoen Scott
+        </p>
+      </header>
 
-        {activeTab === "alerts" && (
-          <div className="max-w-xl mx-auto">
-            <h1 className="text-2xl font-bold mb-4">DC8149 Maintenance Log - Alerts</h1>
-            {posts.map((post) => (
-              <div key={post.id} className="border p-3 rounded mb-4 bg-yellow-100">
-                <p className="font-bold">{post.message}</p>
-                <ul className="space-y-1 mb-2">
-                  {post.comments.map((c, i) => (
-                    <li key={i} className="text-sm pl-2">
-                      - {c}
-                    </li>
-                  ))}
-                </ul>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Add comment"
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    className="border p-2 rounded flex-1"
-                  />
-                  <button onClick={() => addComment(post.id)} className="bg-blue-600 text-white px-4 py-2 rounded">
-                    Post
-                  </button>
-                </div>
-              </div>
+      {activeTab === "parts" && (
+        <div className="section">
+          <h2>Parts Check-Out</h2>
+          <input
+            type="text"
+            value={partName}
+            onChange={(e) => setPartName(e.target.value)}
+            placeholder="New part"
+          />
+          <button onClick={addPart}>Add Part</button>
+          {partError && <div style={{ color: 'red', marginTop: 8 }}>{partError}</div>}
+          <ul>
+            {parts.map((p) => (
+              <li key={p.id}>
+                {p.name}{" "}
+                <button className="delete-btn" onClick={() => deletePart(p.id)}>
+                  Delete
+                </button>
+              </li>
             ))}
-          </div>
-        )}
-      </main>
+          </ul>
+        </div>
+      )}
 
-      <nav className="flex bg-white shadow fixed bottom-0 left-0 right-0">
-        <button className={`flex-1 p-4 text-center font-semibold ${activeTab === "supply" ? "border-t-4 border-blue-600" : ""}`} onClick={() => setActiveTab("supply")}>
-          Supply
-        </button>
-        <button className={`flex-1 p-4 text-center font-semibold ${activeTab === "alerts" ? "border-t-4 border-blue-600" : ""}`} onClick={() => setActiveTab("alerts")}>
-          Alerts
-        </button>
-      </nav>
+      {activeTab === "maintenance" && (
+        <div className="section">
+          <h2>Maintenance Work Log</h2>
+          <input
+            type="text"
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            placeholder="New comment"
+          />
+          <button onClick={addComment}>Add Comment</button>
+          {commentError && <div style={{ color: 'red', marginTop: 8 }}>{commentError}</div>}
+          <ul>
+            {comments.map((c) => (
+              <li key={c.id}>
+                {c.text}{" "}
+                <button className="delete-btn" onClick={() => deleteComment(c.id)}>
+                  Delete
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

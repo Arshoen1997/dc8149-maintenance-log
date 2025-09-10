@@ -7,19 +7,18 @@ const path = require('path');
 const app = express();
 const PORT = 3000;
 
-// JSON file path
 const DATA_FILE = path.join(__dirname, 'data.json');
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
-// In-memory data (will be loaded from JSON)
+// In-memory arrays
 let comments = [];
 let parts = [];
 let nextId = 1;
 
-// Load data from JSON file if it exists
+// Load data from JSON file
 function loadData() {
   if (fs.existsSync(DATA_FILE)) {
     const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
@@ -35,7 +34,7 @@ function saveData() {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
-// Load existing data at server start
+// Load at server start
 loadData();
 
 // Simulated logged-in user
